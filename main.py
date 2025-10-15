@@ -116,12 +116,14 @@ noJudgmentMessages = [
     "No judgment here. Recovery isn't a straight line. Be kind to yourself today. We'll take it one day at a time. ❤️"
 ]
 
-# --- HELPER FUNCTIONS ---
+# --- HELPER FUNCTIONS (FINAL FIX)---
 def get_user(chat_id):
     if not users_sheet: return None
     try:
         cell = users_sheet.find(str(chat_id))
-        return users_sheet.row_values(cell.row)
+        if cell:
+            return users_sheet.row_values(cell.row)
+        return None
     except (gspread.exceptions.CellNotFound, AttributeError):
         return None
 
@@ -129,9 +131,12 @@ def create_or_update_user(chat_id, username):
     if not users_sheet: return None
     try:
         cell = users_sheet.find(str(chat_id))
-        users_sheet.update_cell(cell.row, 2, username or "")
-        return cell.row
-    except (gspread.exceptions.CellNotFound, AttributeError):
+        if cell:
+            users_sheet.update_cell(cell.row, 2, username or "")
+            return cell.row
+        else: # New user
+            raise gspread.exceptions.CellNotFound
+    except gspread.exceptions.CellNotFound:
         today_str = datetime.now(pytz.timezone('Asia/Yangon')).strftime("%Y-%m-%d")
         new_row = [str(chat_id), username or "", today_str, "08:00", "21:00", "FALSE"]
         users_sheet.append_row(new_row)
