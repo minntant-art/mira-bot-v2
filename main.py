@@ -444,10 +444,10 @@ async def status(update: Update, context: CallbackContext):
     days = get_streak_days(chat_id)
     await update.message.reply_text(f"You are on a ✨ {days} day-streak ✨. Keep going!")
 
-# --- MAIN FUNCTION (Render-safe) ---
+# --- MAIN FUNCTION (Render-safe & Properly Initialized) ---
 def main():
     start_web_server()
-    logger.info("✅ MiraNotification Bot (Render-Compatible) starting...")
+    logger.info("✅ MiraNotification Bot (Render-Compatible v2) starting...")
 
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
@@ -456,11 +456,20 @@ def main():
     application.add_handler(CommandHandler("reward", reward))
     application.add_handler(CommandHandler("status", status))
 
-    # Render-safe event loop
+    # Create a safe asyncio loop for Render environment
+    async def run_bot():
+        try:
+            await application.initialize()
+            await application.start()
+            logger.info("🤖 Telegram bot started successfully.")
+            await application.updater.start_polling()
+            await asyncio.Event().wait()  # keep alive
+        except Exception as e:
+            logger.critical(f"Bot crashed: {e}")
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.create_task(application.initialize())
-    loop.create_task(application.start())
+    loop.create_task(run_bot())
     loop.run_forever()
 
 if __name__ == '__main__':
