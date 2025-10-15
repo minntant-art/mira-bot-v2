@@ -446,8 +446,7 @@ async def status(update: Update, context: CallbackContext):
 
 # --- MAIN FUNCTION (Render-safe & Properly Initialized) ---
 def main():
-    start_web_server()
-    logger.info("✅ MiraNotification Bot (Render-Compatible v5, Webhook mode) starting...")
+    logger.info("✅ MiraNotification Bot (Render-Compatible v6, Single Flask + Webhook mode) starting...")
 
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -458,8 +457,24 @@ def main():
     application.add_handler(CommandHandler("reward", reward))
     application.add_handler(CommandHandler("status", status))
 
-    # Webhook URL from Render
+    # Webhook URL (Render)
     WEBHOOK_URL = "https://mira-bot-v2.onrender.com/webhook"
+
+    # Create Flask app (main server)
+    app = Flask(__name__)
+
+    @app.route("/")
+    def home():
+        return "🌿 Mira Bot is live and listening via webhook."
+
+    @app.route("/webhook", methods=["POST"])
+    def webhook():
+        try:
+            data = request.get_json(force=True)
+            asyncio.run(application.update_queue.put(Update.de_json(data, application.bot)))
+        except Exception as e:
+            logger.error(f"Webhook error: {e}")
+        return "OK", 200
 
     async def run_bot():
         try:
@@ -476,22 +491,12 @@ def main():
         asyncio.set_event_loop(loop)
         loop.run_until_complete(run_bot())
 
+    # Start Telegram bot in background thread
     Thread(target=start_bot, daemon=True).start()
 
-    app = Flask(__name__)
-
-    @app.route("/")
-    def home():
-        return "Mira Bot is running 🪶"
-
-    @app.route("/webhook", methods=["POST"])
-    def webhook():
-        data = request.get_json(force=True)
-        asyncio.run(application.update_queue.put(Update.de_json(data, application.bot)))
-        return "OK", 200
-
-    app.run(host="0.0.0.0", port=8080)
-
+    # Run Flask server (Render uses port 8080 automatically)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
 
 if __name__ == '__main__':
     try:
