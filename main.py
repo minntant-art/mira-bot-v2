@@ -31,7 +31,8 @@ def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
 def start_web_server():
-    t = Thread(target=run_flask)
+    # Make the thread a daemon so it doesn't block program exit
+    t = Thread(target=run_flask, daemon=True)
     t.start()
 
 # --- CONFIGURATION ---
@@ -717,4 +718,3 @@ if __name__ == '__main__':
         asyncio.run(main())
     except Exception as e:
         logger.critical(f"Bot crashed with error: {e}")
-
