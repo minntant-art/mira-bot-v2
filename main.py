@@ -447,30 +447,36 @@ async def status(update: Update, context: CallbackContext):
 # --- MAIN FUNCTION (Render-safe & Properly Initialized) ---
 def main():
     start_web_server()
-    logger.info("✅ MiraNotification Bot (Render-Compatible v2) starting...")
+    logger.info("✅ MiraNotification Bot (Render-Compatible v3) starting...")
 
+    # Build the application
     application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    # Register handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("motivate", motivate))
     application.add_handler(CommandHandler("focus", focus))
     application.add_handler(CommandHandler("reward", reward))
     application.add_handler(CommandHandler("status", status))
 
-    # Create a safe asyncio loop for Render environment
-    async def run_bot():
+    async def run():
         try:
             await application.initialize()
             await application.start()
-            logger.info("🤖 Telegram bot started successfully.")
-            await application.updater.start_polling()
-            await asyncio.Event().wait()  # keep alive
-        except Exception as e:
-            logger.critical(f"Bot crashed: {e}")
+            logger.info("🤖 Telegram bot started successfully (Polling mode).")
 
+            # Start polling safely in Render environment
+            await application.updater.start_polling()
+        except Exception as e:
+            logger.critical(f"❌ Bot crashed: {e}")
+        finally:
+            await application.stop()
+            await application.shutdown()
+
+    # Run asyncio loop properly for Render
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.create_task(run_bot())
-    loop.run_forever()
+    loop.run_until_complete(run())
 
 if __name__ == '__main__':
     try:
