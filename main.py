@@ -62,21 +62,21 @@ try:
         try:
             users_sheet = spreadsheet.worksheet("Users")
         except gspread.exceptions.WorksheetNotFound:
-            users_sheet = spreadsheet.add_worksheet(title="Users", rows=100, cols=6)
+            users_sheet = spreadsheet.add_worksheet(title="Users", rows="100", cols="6")
             users_sheet.append_row(["Chat_ID", "Username", "Last_Sober_Date", "Morning_Time", "Night_Time", "Checked_In_Today"])
         
         # "Log" sheet for relapses
         try:
             log_sheet = spreadsheet.worksheet("Log")
         except gspread.exceptions.WorksheetNotFound:
-            log_sheet = spreadsheet.add_worksheet(title="Log", rows=1000, cols=4)
+            log_sheet = spreadsheet.add_worksheet(title="Log", rows="1000", cols="4")
             log_sheet.append_row(["Timestamp", "Chat_ID", "Username", "Relapse_Reason"])
 
         # "MoodLog" sheet for mood tracking
         try:
             mood_sheet = spreadsheet.worksheet("MoodLog")
         except gspread.exceptions.WorksheetNotFound:
-            mood_sheet = spreadsheet.add_worksheet(title="MoodLog", rows=1000, cols=4)
+            mood_sheet = spreadsheet.add_worksheet(title="MoodLog", rows="1000", cols="4")
             mood_sheet.append_row(["Timestamp", "Chat_ID", "Mood", "Craving_Reason"])
 
         logger.info("Successfully connected to Google Sheets.")
@@ -103,7 +103,7 @@ motivateMessages = [
     "Your journey inspires more people than you know. 🌟 | သင်ရဲ့ခရီးက သင်ထင်ထားတာထက် လူအများကြီးကို အားကျစေပါတယ်။ 🌟",
     "With every 'no' to alcohol, you're saying 'yes' to a better life. 👍 | အရက်ကို 'نه' လို့ပြောလိုက်တိုင်း ပိုကောင်းတဲ့ဘဝကို 'ဟုတ်ကဲ့' လို့ ပြောနေတာပါပဲ။ 👍",
     "This path isn't easy, but it is worth it. Keep going. 🛤️ | ဒီလမ်းက မလွယ်ကူပါဘူး၊ ဒါပေမယ့် တန်ပါတယ်။ ရှေ့ဆက်လျှောက်ပါ။ 🛤️",
-    "You are rewriting your story, one sober day at a time. 📖 | သင်ဟာ သင့်ရဲ့ဇာတ်လမ်းကို အရက်မသောက်တဲ့နေ့တစ်နေ့ချင်းစီနဲ့ ပြန်လည်ရေးသားနေတာပါ။ 📖",
+    "You are rewriting your story, one sober day at a time. 📖 | သင်ဟာ သင့်ရဲ့ဇတ်လမ်းကို အရက်မသောက်တဲ့နေ့တစ်နေ့ချင်းစီနဲ့ ပြန်လည်ရေးသားနေတာပါ။ 📖",
     "The peace you're building within yourself is unbreakable. 💎 | သင် သင့်အတွင်းစိတ်ထဲမှာ တည်ဆောက်နေတဲ့ ငြိမ်းချမ်းမှုက မပျက်စီးနိုင်ပါဘူး။ 💎",
     "Let your progress be your motivation. Look how far you've come! 📈 | သင်ရဲ့တိုးတက်မှုကို သင်ရဲ့ခွန်အားအဖြစ်သုံးပါ။ သင်ဘယ်လောက် weit weit ရောက်နေပြီလဲ ကြည့်လိုက်ပါ။ 📈",
     "You are stronger than your cravings. Remember that. 💪 | သင်ဟာ သင့်ရဲ့တောင့်တမှုတွေထက် ပိုပြီးသန်မာပါတယ်။ ဒါကိုသတိရပါ။ 💪",
@@ -268,7 +268,7 @@ cravingSupportMessages = [
     "You are building a life you don't need to escape from. 🏞️ | သင်ဟာ သင်လွတ်မြောက်ဖို့မလိုတဲ့ ဘဝတစ်ခုကို တည်ဆောက်နေတာပါ။ 🏞️",
     "Every craving you overcome is like leveling up in a game. You're getting more powerful. 🎮 | သင်ကျော်လွှားလိုက်တဲ့ တောင့်တမှုတိုင်းက game ထဲမှာ level တက်သွားသလိုပါပဲ။ သင်ပိုပြီး အစွမ်းထက်လာနေပါတယ်။ 🎮",
     "Your health is your wealth. Protect your investment. 💰 | သင့်ကျန်းမာရေးက သင့်ရဲ့ကြွယ်ဝချမ်းသာမှုပါပဲ။ သင့်ရဲ့ရင်းနှီးမြှုပ်နှံမှုကို ကာကွယ်ပါ။ 💰",
-    "This is just a moment. It does not have to be your whole story. 📖 | ဒါက အခိုက်အတန့်လေးတစ်ခုပါပဲ။ ဒါက သင့်ရဲ့ဇာတ်လမ်းတစ်ခုလုံး ဖြစ်စရာမလိုပါဘူး။ 📖",
+    "This is just a moment. It does not have to be your whole story. 📖 | ဒါက အခိုက်အတန့်လေးတစ်ခုပါပဲ။ ဒါက သင့်ရဲ့ဇတ်လမ်းတစ်ခုလုံး ဖြစ်စရာမလိုပါဘူး။ 📖",
     "Take 10 deep, slow breaths. Feel your body calm down with each one. 🧘‍♀️ | အသက်ကို ၁၀ ခါလောက် ဖြည်းဖြည်းနဲ့ sâu sâu ရှူပါ။ တစ်ခါရှူလိုက်တိုင်း သင့်ခန္ဓာကိုယ် တည်ငြိမ်လာတာကို ခံစားလိုက်ပါ။ 🧘‍♀️",
     "Remember the freedom of not being controlled by alcohol. That freedom is worth fighting for. 🕊️ | အရက်ရဲ့ချုပ်ကိုင်မှုအောက်မှာမရှိတဲ့ လွတ်လပ်မှုကို ပြန်သတိရပါ။ အဲ့ဒီလွတ်လပ်မှုက တိုက်ပွဲဝင်ရတာ တန်ပါတယ်။ 🕊️",
     "The urge will fade. It always does. You just have to wait it out. 🕰️ | ဒီစိတ်ဆန္ဒက မှေးမှိန်သွားမှာပါ။ အမြဲတမ်းပါပဲ။ သင်က စောင့်ဆိုင်းပေးဖို့ပဲ လိုတာပါ။ 🕰️",
@@ -359,8 +359,8 @@ noJudgmentMessages = [
     "The path to healing has bumps. This was just a bump. Keep going.  bumpy_road | ကုစားခြင်းဆီသို့ လမ်းမှာ ကြမ်းတမ်းမှုတွေရှိပါတယ်။ ဒါက ကြမ်းတမ်းမှုတစ်ခုပါပဲ။ ရှေ့ဆက်သွားပါ။  bumpy_road",
     "Your worth is not measured by your stumbles, but by your courage to rise again. 🌟 | သင့်တန်ဖိုးကို သင်ရဲ့ချော်လဲမှုတွေနဲ့ တိုင်းတာတာမဟုတ်ဘဲ၊ ပြန်ထဖို့ သတ္တိရှိခြင်းနဲ့ တိုင်းတာတာပါ။ 🌟",
     "Resetting is a sign of strength, not weakness. It means you're still in the fight. 🥊 | ပြန်လည်စတင်ခြင်းက ကြံ့ခိုင်မှုရဲ့လက္ခဏာပါ၊ အားနည်းမှုမဟုတ်ပါဘူး။ ဒါက သင်တိုက်ပွဲဝင်နေတုန်းပဲဆိုတဲ့ အဓိပ္ပာယ်ပါ။ 🥊",
-    "You have not failed. You are in the middle of your comeback story. 🎬 | သင်မရှုံးနိမ့်သေးပါဘူး။ သင်ဟာ သင်ရဲ့ပြန်လာခြင်းဇာတ်လမ်းအလယ်မှာ ရှိနေတာပါ။ 🎬",
-    "I'm still here for you, no matter what. Let's figure out the next step. 🤝 | ဘာပဲဖြစ်ဖြစ် ကျွန်တော်သင့်အတွက် ရှိနေပါတယ်။ နောက်တစ်ဆင့်ကို အတူတူစဉ်းစားကြရအောင်။ 🤝",
+    "You have not failed. You are in the middle of your comeback story. 🎬 | သင်မရှုံးနိမ့်သေးပါဘူး။ သင်ဟာ သင်ရဲ့ပြန်လာခြင်းဇတ်လမ်းအလယ်မှာ ရှိနေတာပါ။ 🎬",
+    "I'm still here for you, no matter what. Let's figure out the next step. 🤝 | ဘာပဲဖြစ်ဖြစ် ကျွန်တော်သင့်အတွက် ရှိနေပါတယ်။ နောက်တစ်ဆင့်ကို အတူတူစဉ်းစားကြရအောင်။ 🤝",
     "Take a deep breath. You are still here. You can still make a different choice for the rest of the day. 🙏 | အသက်ကို sâu sâu ရှူပါ။ သင်ဒီမှာ ရှိနေတုန်းပါပဲ။ နေ့ရဲ့ကျန်တဲ့အချိန်အတွက် မတူညီတဲ့ရွေးချယ်မှုတစ်ခုကို သင်လုပ်နိုင်ပါသေးတယ်။ 🙏",
     "This is a moment to practice self-compassion. Treat yourself gently. 💖 | ဒါက ကိုယ့်ကိုယ်ကိုသနားကြင်နာမှုကို လေ့ကျင့်ရမယ့်အချိန်ပါ။ ကိုယ့်ကိုယ်ကို ညင်သာစွာဆက်ဆံပါ။ 💖",
     "Don't let one choice overshadow all the good choices you've made. ✨ | သင်ချခဲ့တဲ့ ရွေးချယ်မှုကောင်းတွေအားလုံးကို ရွေးချယ်မှုတစ်ခုတည်းက ဖုံးလွှမ်းမသွားပါစေနဲ့။ ✨",
@@ -709,7 +709,7 @@ async def main():
     logger.info("✅ MiraNotification Bot (Full Version) starting...")
 
     # This is the correct way to run the bot and its job queue
-    application.run_polling()
+    await application.run_polling()
 
 
 if __name__ == '__main__':
@@ -717,4 +717,3 @@ if __name__ == '__main__':
         asyncio.run(main())
     except Exception as e:
         logger.critical(f"Bot crashed with error: {e}")
-
