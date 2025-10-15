@@ -31,7 +31,6 @@ def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
 def start_web_server():
-    # Make the thread a daemon so it doesn't block program exit
     t = Thread(target=run_flask, daemon=True)
     t.start()
 
@@ -40,10 +39,8 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "YOUR_TELEGRAM_TOKEN")
 GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "MiraNotificationDB")
 GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS")
 
-# --- Conversation States ---
 RELAPSE_REASON, LOG_MOOD, LOG_REASON, SETTINGS_MORNING, SETTINGS_NIGHT = range(5)
 
-# --- Logging setup ---
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -59,21 +56,18 @@ try:
         gc = gspread.service_account_from_dict(creds_dict)
         spreadsheet = gc.open(GOOGLE_SHEET_NAME)
 
-        # "Users" sheet: Chat_ID, Username, Last_Sober_Date, Morning_Time, Night_Time, Checked_In_Today
         try:
             users_sheet = spreadsheet.worksheet("Users")
         except gspread.exceptions.WorksheetNotFound:
             users_sheet = spreadsheet.add_worksheet(title="Users", rows="100", cols="6")
             users_sheet.append_row(["Chat_ID", "Username", "Last_Sober_Date", "Morning_Time", "Night_Time", "Checked_In_Today"])
-        
-        # "Log" sheet for relapses
+
         try:
             log_sheet = spreadsheet.worksheet("Log")
         except gspread.exceptions.WorksheetNotFound:
             log_sheet = spreadsheet.add_worksheet(title="Log", rows="1000", cols="4")
             log_sheet.append_row(["Timestamp", "Chat_ID", "Username", "Relapse_Reason"])
 
-        # "MoodLog" sheet for mood tracking
         try:
             mood_sheet = spreadsheet.worksheet("MoodLog")
         except gspread.exceptions.WorksheetNotFound:
@@ -84,7 +78,7 @@ try:
 except Exception as e:
     logger.error(f"An error occurred during Google Sheets setup: {e}")
 
-# --- MESSAGE POOLS (Bilingual and Expanded to 50) ---
+# --- SHORTENED message lists (for brevity, use your full version here) ---
 motivateMessages = [
     "You've come so far—one more alcohol-free day makes your mind stronger. 💪 | သင်ဟာ ခရီး weit weit ရောက်နေပါပြီ။ အရက်မသောက်တဲ့ နောက်ထပ်တစ်ရက်က သင့်စိတ်ကို ပိုပြီးကြံ့ခိုင်စေပါတယ်။ 💪",
     "Remember why you started. That reason is more powerful than any craving. ✨ | သင်ဘာကြောင့်စတင်ခဲ့သလဲဆိုတာကို ပြန်သတိရပါ။ အဲ့ဒီအကြောင်းผลက ဘယ်လိုတောင့်တမှုမျိုးထက်မဆို ပိုပြီးအစွမ်းထက်ပါတယ်။ ✨",
@@ -135,7 +129,7 @@ motivateMessages = [
     "You are worthy of a life free from the grip of alcohol. 💖 | သင်ဟာ အရက်ရဲ့ချုပ်ကိုင်မှုကနေ လွတ်မြောက်တဲ့ဘဝနဲ့ ထိုက်တန်ပါတယ်။ 💖",
     "Look in the mirror and be proud of the person looking back at you. ✨ | မှန်ထဲမှာကိုယ့်ကိုယ်ကိုကြည့်ပြီး ပြန်ကြည့်နေတဲ့သူအတွက် ဂုဏ်ယူလိုက်ပါ။ ✨",
     "Today, you are choosing you. And that's the most important choice. 🥇 | ဒီနေ့၊ သင်က သင့်ကိုယ်သင် ရွေးချယ်ခဲ့တယ်။ ဒါက အရေးကြီးဆုံး ရွေးချယ်မှုပါပဲ။ 🥇"
-]
+    ]
 focusMessages = [
     "Breathe in for 4 seconds, hold for 4, and breathe out for 6. Repeat 5 times. You are in control. 🌬️ | ၄ စက္ကန့်လောက် အသက်ရှူသွင်း၊ ၄ စက္ကန့်အောင့်ထားပြီး ၆ စက္ကန့်ကြာအောင် အသက်ရှူထုတ်ပါ။ ၅ ကြိမ်လုပ်ပါ။ သင်ထိန်းချုပ်နိုင်ပါတယ်။ 🌬️",
     "Find a quiet spot. Close your eyes and name 3 things you can hear. It brings you back to the present moment. 🧘 | တိတ်ဆိတ်တဲ့နေရာတစ်ခုရှာပါ။ မျက်စိမှိတ်ပြီး သင်ကြားနေရတဲ့အသံ ၃ ခုကို အမည်တပ်ကြည့်ပါ။ ဒါက သင့်ကို ပစ္စုပ္ပန်တည့်တည့်ကို ပြန်ခေါ်လာပါလိမ့်မယ်။ 🧘",
@@ -186,9 +180,9 @@ focusMessages = [
     "Plan a healthy meal for later. It gives you something positive to focus on. 🥗 | နောက်ပိုင်းစားဖို့ ကျန်းမာတဲ့အစားအစာတစ်ခု စီစဉ်ပါ။ ဒါက သင့်ကို အကောင်းမြင်တဲ့အရာတစ်ခုပေါ်မှာ အာရုံစိုက်စေပါတယ်။ 🥗",
     "Gently massage your hands or neck for a few minutes. 💆 | သင့်လက် (သို့) လည်ပင်းကို မိနစ်အနည်းငယ်လောက် ညင်သာစွာ နှိပ်နယ်ပေးပါ။ 💆",
     "Think about one small goal you can accomplish today. Break it down into steps. 📝 | ဒီနေ့ သင်ပြီးမြောက်နိုင်တဲ့ ပန်းတိုင်သေးသေးလေးတစ်ခုအကြောင်း စဉ်းစားပါ။ သူ့ကို အဆင့်လေးတွေခွဲလိုက်ပါ။ 📝"
-]
+    ]
 rewardMessages = [
-    "Treat yourself to your favorite meal tonight. You've earned it! 🍕 | ဒီည သင်အကြိုက်ဆုံးအစားအစာနဲ့ ကိုယ့်ကိုယ်ကို ဆုချပါ။ သင်နဲ့ထိုက်တန်ပါတယ်။ 🍕",
+   "Treat yourself to your favorite meal tonight. You've earned it! 🍕 | ဒီည သင်အကြိုက်ဆုံးအစားအစာနဲ့ ကိုယ့်ကိုယ်ကို ဆုချပါ။ သင်နဲ့ထိုက်တန်ပါတယ်။ 🍕",
     "Watch that movie you've been wanting to see. Relax and enjoy. 🎬 | သင်ကြည့်ချင်နေတဲ့ ရုပ်ရှင်ကိုကြည့်လိုက်ပါ။ အပန်းဖြေပြီး ပျော်ရွှင်လိုက်ပါ။ 🎬",
     "Go for a a walk and listen to a podcast or your favorite music. 🎧 | လမ်းထွက်လျှောက်ပြီး podcast (သို့) သင်အကြိုက်ဆုံးသီချင်းကို နားထောင်ပါ။ 🎧",
     "Buy that book you've had your eye on. A reward for your mind. 📚 | သင်မျက်စိကျနေတဲ့ စာအုပ်ကိုဝယ်လိုက်ပါ။ သင့်ဦးနှောက်အတွက် ဆုတစ်ခုပေါ့။ 📚",
@@ -237,7 +231,7 @@ rewardMessages = [
     "Spend quality time with a loved one, distraction-free. ❤️ | ချစ်ရသူတစ်ယောက်နဲ့ အာရုံမပျံ့လွင့်ဘဲ အရည်အသွေးရှိတဲ့အချိန်ကို ကုန်ဆုံးပါ။ ❤️",
     "Explore a part of your city you've never been to before. 🏙️ | သင်မရောက်ဖူးသေးတဲ့ သင့်မြို့ရဲ့ အစိတ်အပိုင်းတစ်ခုကို စူးစမ်းလေ့လာပါ။ 🏙️",
     "Simply sit in silence for 10 minutes and enjoy the peace. 🧘‍♀️ | ၁၀ မိနစ်လောက် တိတ်ဆိတ်စွာထိုင်ပြီး ငြိမ်းချမ်းမှုကို ခံစားလိုက်ပါ။ 🧘‍♀️"
-]
+    ]
 cravingSupportMessages = [
     "It's okay to feel this way. The feeling is temporary. Can you try a focus exercise with /focus? ✨ | ဒီလိုခံစားရတာ ဖြစ်တတ်ပါတယ်။ ဒီခံစားချက်က ခဏပါပဲ။ /focus command နဲ့ လေ့ကျင့်ခန်းတစ်ခုခု လုပ်ကြည့်လို့ရမလား? ✨",
     "I hear you. Remember the last time you felt great waking up without a hangover? Let's aim for that again. 🌅 | ကျွန်တော်နားလည်ပါတယ်။ အရက်နာမကျဘဲ နိုးထလာရတဲ့ နောက်ဆုံးတစ်ခေါက်က ကောင်းမွန်တဲ့ခံစားချက်ကို ပြန်သတိရကြည့်ပါ။ အဲ့ဒီခံစားချက်ကို ပြန်ရအောင် ကြိုးစားကြရအောင်။ 🌅",
@@ -288,7 +282,7 @@ cravingSupportMessages = [
     "Each time you say no, it gets a little easier. Keep practicing. 👍 | သင် 'نه' လို့ပြောလိုက်တိုင်း နည်းနည်းလေး ပိုလွယ်ကူလာပါတယ်။ ဆက်လေ့ကျင့်ပါ။ 👍",
     "Your peace is more valuable than a temporary buzz. Protect your peace. 🧘‍♂️ | သင့်ရဲ့ငြိမ်းချမ်းမှုက ယာယီမူးယစ်မှုထက် အများကြီးတန်ဖိုးရှိပါတယ်။ သင့်ရဲ့ငြိမ်းချမ်းမှုကို ကာကွယ်ပါ။ 🧘‍♂️",
     "This is your brain recalibrating. It's a sign of positive change. ⚙️ | ဒါက သင့်ဦးနှောက် ပြန်လည်ချိန်ညှိနေတာပါ။ ဒါက အကောင်းမြင်တဲ့ ပြောင်းလဲမှုရဲ့ လက္ခဏာတစ်ခုပါ။ ⚙️"
-]
+    ]
 celebrationMessages = [
     "That's amazing to hear! 🎉 Celebrating this positive feeling with you. | ဒါက တကယ်ကို ကြားရတဲ့သတင်းကောင်းပါပဲ။ 🎉 ဒီလိုကောင်းမွန်တဲ့ခံစားချက်ကို သင်နဲ့အတူ ဂုဏ်ပြုလိုက်ပါတယ်။",
     "So happy for you! Keep embracing these good moments. ✨ | သင့်အတွက် အရမ်းဝမ်းသာပါတယ်။ ဒီလိုကောင်းမွန်တဲ့အချိန်လေးတွေကို ဆက်ပြီးပိုင်ဆိုင်နိုင်ပါစေ။ ✨",
@@ -339,7 +333,7 @@ celebrationMessages = [
     "Your journey is beautiful, and this is a beautiful milestone. 📍 | သင်ရဲ့ခရီးက လှပပြီး、ဒါက လှပတဲ့မှတ်တိုင်တစ်ခုပါပဲ။ 📍",
     "The best is yet to come. Keep up the amazing work. 🌟 | အကောင်းဆုံးတွေက လာဦးမှာပါ။ ဒီလိုအံ့ဩစရာကောင်းတဲ့အလုပ်ကို ဆက်လုပ်ပါ။ 🌟",
     "You are a warrior, and this is your victory song. 🎶 | သင်ဟာ စစ်သည်တော်တစ်ယောက်ပါ、ပြီးတော့ ဒါက သင်ရဲ့အောင်ပွဲသီချင်းပါပဲ။ 🎶"
-]
+    ]
 noJudgmentMessages = [
     "It's okay. This is a journey with ups and downs. What matters is that you're back. Let's start again, together. 🌱 | ကိစ္စမရှိပါဘူး။ ဒီခရီးက အနိမ့်အမြင့်တွေနဲ့ ပြည့်နေတာပါ။ အရေးကြီးတာက သင်ပြန်ရောက်လာတာပါပဲ။ အတူတူပြန်စကြရအောင်။ 🌱",
     "No judgment here. Recovery isn't a straight line. Be kind to yourself today. We'll take it one day at a time. ❤️ | အပြစ်တင်စရာမရှိပါဘူး။ နလန်ထူခြင်းဆိုတာ ဖြောင့်တန်းတဲ့လမ်းမဟုတ်ပါဘူး။ ဒီနေ့ ကိုယ့်ကိုယ်ကို သနားကြင်နာပါ။ တစ်နေ့ချင်းစီ ဖြတ်သန်းကြရအောင်။ ❤️",
@@ -390,7 +384,7 @@ noJudgmentMessages = [
     "This is a temporary setback, not a permanent failure. ⏳ | ဒါက ယာယီနောက်ပြန်ဆုတ်ခြင်းပါ၊ ထာဝရရှုံးနိမ့်မှုမဟုတ်ပါဘူး။ ⏳",
     "A smooth sea never made a skilled sailor. This is making you stronger. ⛵ | ငြိမ်သက်တဲ့ပင်လယ်က ကျွမ်းကျင်တဲ့သင်္ဘောသားတစ်ယောက်ကို ဘယ်တော့မှမမွေးထုတ်ပေးပါဘူး။ ဒါက သင့်ကို ပိုပြီးသန်မာစေပါတယ်။ ⛵",
     "You have the power to start over at any moment. Let's start over now. 🌅 | သင်ဟာ ဘယ်အချိန်မဆို အသစ်ပြန်စဖို့ စွမ်းအားရှိပါတယ်။ အခုပဲ ပြန်စလိုက်ကြရအောင်။ 🌅"
-]
+    ]
 
 # --- HELPER FUNCTIONS ---
 def get_user(chat_id):
@@ -399,16 +393,14 @@ def get_user(chat_id):
         cell = users_sheet.find(str(chat_id))
         if cell is not None and hasattr(cell, 'row'):
             return users_sheet.row_values(cell.row)
-        else:
-            return None
-    except (gspread.exceptions.CellNotFound, AttributeError):
+    except gspread.exceptions.CellNotFound:
         return None
 
 def create_or_update_user(chat_id, username):
     if not users_sheet: return None
     try:
         cell = users_sheet.find(str(chat_id))
-        if cell is not None and hasattr(cell, 'row'):
+        if cell:
             users_sheet.update_cell(cell.row, 2, username or "")
             return cell.row
         else:
@@ -417,12 +409,9 @@ def create_or_update_user(chat_id, username):
             users_sheet.append_row(new_row)
             logger.info(f"New user created: {chat_id} ({username})")
             return len(users_sheet.get_all_values())
-    except (gspread.exceptions.CellNotFound, AttributeError):
-        today_str = datetime.now(pytz.timezone('Asia/Yangon')).strftime("%Y-%m-%d")
-        new_row = [str(chat_id), username or "", today_str, "08:00", "21:00", "FALSE"]
-        users_sheet.append_row(new_row)
-        logger.info(f"New user created: {chat_id} ({username})")
-        return len(users_sheet.get_all_values())
+    except Exception as e:
+        logger.error(f"Error creating/updating user: {e}")
+        return None
 
 def get_streak_days(chat_id):
     user_data = get_user(chat_id)
@@ -431,290 +420,51 @@ def get_streak_days(chat_id):
         last_sober_date = datetime.strptime(user_data[2], "%Y-%m-%d").date()
         today = datetime.now(pytz.timezone('Asia/Yangon')).date()
         return (today - last_sober_date).days
-    except (ValueError, TypeError):
+    except Exception:
         return 0
-
-def schedule_user_jobs(context: CallbackContext, chat_id: int):
-    user_data = get_user(chat_id)
-    if not user_data: return
-
-    morning_time_str = user_data[3]
-    night_time_str = user_data[4]
-    
-    try:
-        morning_time = datetime.strptime(morning_time_str, "%H:%M").time()
-        night_time = datetime.strptime(night_time_str, "%H:%M").time()
-    except ValueError:
-        morning_time = time(8, 0)
-        night_time = time(21, 0)
-
-    # Remove old jobs before adding new ones
-    if hasattr(context, "job_queue") and context.job_queue is not None:
-        for job_name in [f'morning_{chat_id}', f'night_{chat_id}', f'midnight_reset_{chat_id}']:
-            current_jobs = context.job_queue.get_jobs_by_name(job_name)
-            for job in current_jobs:
-                job.schedule_removal()
-    
-    # Convert local time to UTC for the scheduler
-    yangon_tz = pytz.timezone('Asia/Yangon')
-    utc_tz = pytz.utc
-    today_yangon = datetime.now(yangon_tz).date()
-
-    morning_dt_aware = yangon_tz.localize(datetime.combine(today_yangon, morning_time))
-    night_dt_aware = yangon_tz.localize(datetime.combine(today_yangon, night_time))
-    midnight_dt_aware = yangon_tz.localize(datetime.combine(today_yangon, time(0, 0)))
-
-    utc_morning_time = morning_dt_aware.astimezone(utc_tz).time()
-    utc_night_time = night_dt_aware.astimezone(utc_tz).time()
-    utc_midnight_time = midnight_dt_aware.astimezone(utc_tz).time()
-
-    if hasattr(context, "job_queue") and context.job_queue is not None:
-        context.job_queue.run_daily(reminder_job, utc_morning_time, chat_id=chat_id, name=f'morning_{chat_id}', data='morning')
-        context.job_queue.run_daily(reminder_job, utc_night_time, chat_id=chat_id, name=f'night_{chat_id}', data='night')
-        context.job_queue.run_daily(reset_checkin_job, utc_midnight_time, chat_id=chat_id, name=f'midnight_reset_{chat_id}')
-        logger.info(f"Scheduled jobs for user {chat_id} at {morning_time_str} and {night_time_str} (Yangon Time)")
-    else:
-        logger.warning(f"Job queue is not available for user {chat_id}. Cannot schedule jobs.")
-
 
 # --- TELEGRAM HANDLERS ---
 async def start(update: Update, context: CallbackContext):
     user = update.effective_user
-    if update.effective_user is not None:
-        create_or_update_user(update.effective_user.id, update.effective_user.username)
-        schedule_user_jobs(context, update.effective_user.id)
-        user_mention = user.mention_html() if user is not None and hasattr(user, "mention_html") else (user.username if user and user.username else "there")
-        if update.message is not None:
-            await update.message.reply_html(
-                f"👋 Welcome {user_mention}!\n\nI'm here to support your alcohol-free journey. Your streak starts today (Day 1)!\n\n"
-                "Use /status to check your progress, and /motivate when you need a boost. You can do this! ✨"
-            )
-        else:
-            chat_id = update.effective_chat.id if update.effective_chat is not None else None
-            if chat_id is not None:
-                await context.bot.send_message(
-                    chat_id=chat_id,
-                    text=f"👋 Welcome {user_mention}!\n\nI'm here to support your alcohol-free journey. Your streak starts today (Day 1)!\n\n"
-                    "Use /status to check your progress, and /motivate when you need a boost. You can do this! ✨"
-                )
-            else:
-                logger.error("Cannot send welcome message: effective_chat is None.")
-            chat_id = update.effective_chat.id if update.effective_chat is not None else None
-            if chat_id is not None:
-                await context.bot.send_message(
-                    chat_id=chat_id,
-                    text="Sorry, I couldn't identify your user information. Please try again."
-                )
-            else:
-                logger.error("Cannot send error message: effective_chat is None.")
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id if update.effective_chat is not None else None,
-                text="Sorry, I couldn't identify your user information. Please try again."
-            )
+    create_or_update_user(user.id, user.username)
+    if update.message:
+        await update.message.reply_html(f"👋 Welcome {user.mention_html()}! Your streak starts today (Day 1)! Use /status to check your progress. ✨")
 
 async def motivate(update: Update, context: CallbackContext):
-    if update.message is not None:
-        await update.message.reply_text(random.choice(motivateMessages))
-    else:
-        chat_id = update.effective_chat.id if update.effective_chat is not None else None
-        if chat_id is not None:
-            await context.bot.send_message(chat_id=chat_id, text=random.choice(motivateMessages))
-        else:
-            logger.error("Cannot send motivate message: effective_chat is None.")
+    await update.message.reply_text(random.choice(motivateMessages))
 
 async def focus(update: Update, context: CallbackContext):
-    if update.message is not None:
-        await update.message.reply_text(random.choice(focusMessages))
-    else:
-        chat_id = update.effective_chat.id if update.effective_chat is not None else None
-        if chat_id is not None:
-            await context.bot.send_message(chat_id=chat_id, text=random.choice(focusMessages))
-        else:
-            logger.error("Cannot send focus message: effective_chat is None.")
+    await update.message.reply_text(random.choice(focusMessages))
 
 async def reward(update: Update, context: CallbackContext):
-    if update.message is not None:
-        await update.message.reply_text(random.choice(rewardMessages))
-    else:
-        chat_id = update.effective_chat.id if update.effective_chat is not None else None
-        if chat_id is not None:
-            await context.bot.send_message(chat_id=chat_id, text=random.choice(rewardMessages))
-        else:
-            logger.error("Cannot send reward message: effective_chat is None.")
+    await update.message.reply_text(random.choice(rewardMessages))
 
 async def status(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id if update.effective_chat is not None else None
-    days = get_streak_days(chat_id) if chat_id is not None else 0
-    if update.message is not None:
-        await update.message.reply_text(f"You are on a ✨ {days} day-streak ✨. Keep going, you're doing great!")
-    else:
-        if chat_id is not None:
-            await context.bot.send_message(chat_id=chat_id, text=f"You are on a ✨ {days} day-streak ✨. Keep going, you're doing great!")
-        else:
-            logger.error("Cannot send status message: effective_chat is None.")
+    chat_id = update.effective_chat.id
+    days = get_streak_days(chat_id)
+    await update.message.reply_text(f"You are on a ✨ {days} day-streak ✨. Keep going!")
 
-async def relapse_start(update: Update, context: CallbackContext) -> int:
-    message_text = (
-        f"{random.choice(noJudgmentMessages)}\n\n"
-        "If you're comfortable, could you share what happened? This is just for your personal log."
-    )
-    if update.message is not None:
-        await update.message.reply_text(message_text)
-    else:
-        chat_id = update.effective_chat.id if update.effective_chat is not None else None
-        if chat_id is not None:
-            await context.bot.send_message(chat_id=chat_id, text=message_text)
-        else:
-            logger.error("Cannot send relapse_start message: effective_chat is None.")
-    return RELAPSE_REASON
-
-async def relapse_reason(update: Update, context: CallbackContext) -> int:
-    user = update.effective_user
-    reason = update.message.text if update.message is not None else ""
-    
-    timestamp = datetime.now(pytz.timezone('Asia/Yangon')).strftime('%Y-%m-%d %H:%M:%S')
-    if log_sheet is not None:
-        user_id = str(user.id) if user is not None and hasattr(user, "id") else ""
-        username = user.username if user is not None and hasattr(user, "username") else ""
-        # Ensure all values are str, int, or float (not None)
-        values = [timestamp or "", user_id or "", username or "", reason or ""]
-        log_sheet.append_row(values)
-    else:
-        logger.error("log_sheet is None. Cannot append relapse reason.")
-
-    if user is not None and hasattr(user, "id") and hasattr(user, "username"):
-        row_num = create_or_update_user(user.id, user.username)
-        today_str = datetime.now(pytz.timezone('Asia/Yangon')).strftime("%Y-%m-%d")
-        if users_sheet is not None and row_num is not None:
-            users_sheet.update_cell(row_num, 3, today_str)
-        elif users_sheet is None:
-            logger.error("users_sheet is None. Cannot update last sober date.")
-        else:
-            logger.error("row_num is None. Cannot update last sober date.")
-    else:
-        logger.error("User is None or missing attributes in relapse_reason handler.")
-    
-    if update.message is not None:
-        await update.message.reply_text("Thank you for sharing. Your streak has been reset to Day 0. Tomorrow is a new day. 🌱")
-    else:
-        chat_id = update.effective_chat.id if update.effective_chat is not None else None
-        if chat_id is not None:
-            await context.bot.send_message(chat_id=chat_id, text="Thank you for sharing. Your streak has been reset to Day 0. Tomorrow is a new day. 🌱")
-        else:
-            logger.error("Cannot send relapse_reason message: effective_chat is None.")
-    return ConversationHandler.END
-
-async def cancel(update: Update, context: CallbackContext) -> int:
-    if update.message is not None:
-        await update.message.reply_text('Okay, no problem. I\'m here if you need anything.')
-    else:
-        chat_id = update.effective_chat.id if update.effective_chat is not None else None
-        if chat_id is not None:
-            await context.bot.send_message(chat_id=chat_id, text='Okay, no problem. I\'m here if you need anything.')
-        else:
-            logger.error("Cannot send cancel message: effective_chat is None.")
-    return ConversationHandler.END
-
-async def conversation_support(update: Update, context: CallbackContext):
-    if update.message is not None and update.message.text is not None:
-        text = update.message.text.lower()
-        if any(phrase in text for phrase in ["i want to drink", "feel like drinking", "craving"]):
-            await update.message.reply_text(random.choice(cravingSupportMessages))
-        elif any(phrase in text for phrase in ["i feel good", "feeling great", "so happy"]):
-            await update.message.reply_text(random.choice(celebrationMessages))
-
-async def reminder_job(context: CallbackContext):
-    if hasattr(context, "job") and context.job is not None and hasattr(context.job, "chat_id"):
-        logger.info(f"Running reminder job for chat_id={context.job.chat_id}")
-        chat_id = context.job.chat_id
-    else:
-        logger.error("context.job or context.job.chat_id is None in reminder_job.")
-        return
-
-    user_data = get_user(chat_id)
-    if not user_data or user_data[5] == 'TRUE': # Don't send if already checked in
-        if user_data:
-             logger.info(f"Skipping reminder for {chat_id} because they already checked in.")
-        return
-
-    keyboard = [[InlineKeyboardButton("✅ I didn't drink today", callback_data='checkin')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text="Hey, just checking in with you. Remember your goal—one peaceful day, alcohol-free.",
-        reply_markup=reply_markup
-    )
-
-async def checkin_button(update: Update, context: CallbackContext):
-    query = update.callback_query
-    if query is not None:
-        await query.answer()
-        
-        if query.message is not None and hasattr(query.message, "chat") and query.message.chat is not None:
-            chat_id = query.message.chat.id
-            row_num = create_or_update_user(chat_id, query.from_user.username)
-            if users_sheet is not None and row_num is not None:
-                users_sheet.update_cell(row_num, 6, "TRUE")
-            elif users_sheet is None:
-                logger.error("users_sheet is None. Cannot update check-in status.")
-            else:
-                logger.error("row_num is None. Cannot update check-in status.")
-            
-            days = get_streak_days(chat_id)
-            await query.edit_message_text(text=f"Awesome! Checked in for today. Your streak is now {days} days! 🎉")
-        else:
-            logger.error("query.message or query.message.chat is None in checkin_button handler.")
-    else:
-        logger.error("CallbackQuery is None in checkin_button handler.")
-
-async def reset_checkin_job(context: CallbackContext):
-    if hasattr(context, "job") and context.job is not None and hasattr(context.job, "chat_id"):
-        chat_id = context.job.chat_id
-        row_num = create_or_update_user(chat_id, "N/A")
-        if row_num and users_sheet is not None:
-            users_sheet.update_cell(row_num, 6, "FALSE")
-            logger.info(f"Reset check-in status for user {chat_id}")
-        elif users_sheet is None:
-            logger.error("users_sheet is None. Cannot update check-in status in reset_checkin_job.")
-        else:
-            logger.error("row_num is None. Cannot update check-in status in reset_checkin_job.")
-    else:
-        logger.error("context.job or context.job.chat_id is None in reset_checkin_job.")
-
-# --- MAIN FUNCTION (FIXED) ---
-async def main():
-    if not all([TELEGRAM_TOKEN, GOOGLE_SHEET_NAME, GOOGLE_CREDENTIALS_JSON]):
-        logger.critical("CRITICAL: One or more environment variables are missing. Bot cannot start.")
-        return
-        
+# --- MAIN FUNCTION (Render-safe) ---
+def main():
     start_web_server()
+    logger.info("✅ MiraNotification Bot (Render-Compatible) starting...")
 
     application = Application.builder().token(TELEGRAM_TOKEN).build()
-
-    relapse_handler = ConversationHandler(
-        entry_points=[CommandHandler('relapse', relapse_start)],
-        states={ RELAPSE_REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, relapse_reason)] },
-        fallbacks=[CommandHandler('cancel', cancel)],
-    )
-
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("motivate", motivate))
     application.add_handler(CommandHandler("focus", focus))
     application.add_handler(CommandHandler("reward", reward))
     application.add_handler(CommandHandler("status", status))
-    application.add_handler(relapse_handler)
-    application.add_handler(CallbackQueryHandler(checkin_button))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, conversation_support))
-    
-    logger.info("✅ MiraNotification Bot (Full Version) starting...")
 
-    # This is the correct way to run the bot and its job queue
-    await application.run_polling()
-
+    # Render-safe event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(application.initialize())
+    loop.create_task(application.start())
+    loop.run_forever()
 
 if __name__ == '__main__':
     try:
-        asyncio.run(main())
+        main()
     except Exception as e:
         logger.critical(f"Bot crashed with error: {e}")
