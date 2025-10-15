@@ -447,35 +447,30 @@ async def status(update: Update, context: CallbackContext):
 # --- MAIN FUNCTION (Render-safe & Properly Initialized) ---
 def main():
     start_web_server()
-    logger.info("✅ MiraNotification Bot (Render-Compatible v4) starting...")
+    logger.info("✅ MiraNotification Bot (Render-Compatible v5, Webhook mode) starting...")
 
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Handlers
+    # Register handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("motivate", motivate))
     application.add_handler(CommandHandler("focus", focus))
     application.add_handler(CommandHandler("reward", reward))
     application.add_handler(CommandHandler("status", status))
 
-    # Define bot runner (async)
+    # Webhook URL from Render
+    WEBHOOK_URL = "https://mira-bot-v2.onrender.com/webhook"
+
     async def run_bot():
         try:
             await application.initialize()
             await application.start()
-            logger.info("🤖 Telegram bot started successfully (Polling mode).")
-
-            # Start polling safely
-            await application.updater.start_polling()
-            await asyncio.Event().wait()  # Keeps alive forever
-
+            await application.bot.delete_webhook()
+            await application.bot.set_webhook(url=WEBHOOK_URL)
+            logger.info(f"🤖 Telegram bot started successfully (Webhook set to {WEBHOOK_URL}).")
         except Exception as e:
             logger.critical(f"❌ Bot crashed: {e}")
-        finally:
-            await application.stop()
-            await application.shutdown()
 
-    # Run Telegram bot as a background thread
     def start_bot():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -483,9 +478,20 @@ def main():
 
     Thread(target=start_bot, daemon=True).start()
 
-    # Keep Flask alive indefinitely (Render health check passes)
-    while True:
-        pass
+    app = Flask(__name__)
+
+    @app.route("/")
+    def home():
+        return "Mira Bot is running 🪶"
+
+    @app.route("/webhook", methods=["POST"])
+    def webhook():
+        data = request.get_json(force=True)
+        asyncio.run(application.update_queue.put(Update.de_json(data, application.bot)))
+        return "OK", 200
+
+    app.run(host="0.0.0.0", port=8080)
+
 
 if __name__ == '__main__':
     try:
