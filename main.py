@@ -468,13 +468,16 @@ def main():
         return "🌿 Mira Bot is live and listening via webhook."
 
     @app.route("/webhook", methods=["POST"])
-    def webhook():
-        try:
-            data = request.get_json(force=True)
-            asyncio.run(application.update_queue.put(Update.de_json(data, application.bot)))
-        except Exception as e:
-            logger.error(f"Webhook error: {e}")
-        return "OK", 200
+def webhook():
+    try:
+        data = request.get_json()
+        update = Update.de_json(data, application.bot)
+        asyncio.get_event_loop().create_task(application.process_update(update))
+        logger.info(f"📩 Received update: {update}")
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+    return "OK", 200
+
 
     async def run_bot():
         try:
