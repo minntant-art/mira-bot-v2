@@ -443,10 +443,15 @@ def main():
     # we find the currently running loop in the bot thread by waiting a little.
     # (This is a pragmatic approach for Render-style single-process deployments.)
     attempts = 0
-    while attempts < 20 and (not app_instance.is_running):
+    while attempts < 20:
+        loop_guess = getattr(app_instance, "_running_loop", None)
+        if loop_guess:
+            app_loop = loop_guess
+            logger.info("✅ Application event loop obtained successfully.")
+            break
         attempts += 1
-        logger.debug("Waiting for app_instance to start...")
-        asyncio.sleep(0.1)
+        import time as _t
+        _t.sleep(0.3)
     # Try to get the loop: Application has attribute `_running_loop` when started
     # We'll poll until it's available
     poll_count = 0
