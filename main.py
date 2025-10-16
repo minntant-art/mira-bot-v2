@@ -201,11 +201,20 @@ def main():
             data = request.get_json()
             if not data:
                 return "No data", 200
+            
+            logger.info(f"📩 Incoming update: {data}")
             update = Update.de_json(data, app_instance.bot)
-            loop = asyncio.get_event_loop()
+    
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
             loop.create_task(app_instance.process_update(update))
+            logger.info("✅ Webhook update processed successfully.")
         except Exception as e:
-            logger.error(f"Webhook error: {e}")
+            logger.error(f"❌ Webhook error: {e}")
         return "OK", 200
 
     async def run_bot():
