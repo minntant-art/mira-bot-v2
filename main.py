@@ -1,253 +1,168 @@
 # -*- coding: utf-8 -*-
-import os, json, random, logging, asyncio, pytz
+import os
+import json
+import random
+import logging
+import asyncio
 from datetime import datetime
-from flask import Flask, request
 from threading import Thread
-import gspread
+from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
-    Application, CommandHandler, MessageHandler, filters, ContextTypes
+    Application,
+    CommandHandler,
+    MessageHandler,
+    filters,
 )
+import gspread
 
-# ========== CONFIG ==========
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "YOUR_TELEGRAM_TOKEN")
-GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "MiraAlcoholDB")
-GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS")
+# --- Configuration ---
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "8314100228:AAFw3iR_bHrjFyN2os3fjDF_-7v2Pv2tOv0")
+SPREADSHEET_ID = "1ZZLEc6OsBt89Vc3rAwqdGjRek1Ut7YFcAUeWZVVOszY"
+WEBHOOK_URL = "https://mira-bot-v2.onrender.com/webhook"
 
-# ========== LOGGING ==========
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+# --- Setup logging ---
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# ========== FLASK ==========
+# --- Flask app ---
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return "🍃 Mira Alcohol-Free Bot is alive!"
+# --- Google Sheets setup ---
+gc = gspread.service_account(filename="credentials.json")
+sheet = gc.open_by_key(SPREADSHEET_ID)
 
-# ========== GOOGLE SHEETS ==========
-try:
-    creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
-    gc = gspread.service_account_from_dict(creds_dict)
-    sh = gc.open(GOOGLE_SHEET_NAME)
-    try:
-        alcohol_sheet = sh.worksheet("Alcohol")
-    except gspread.exceptions.WorksheetNotFound:
-        alcohol_sheet = sh.add_worksheet(title="Alcohol", rows="100", cols="4")
-        alcohol_sheet.append_row(["Date", "Description", "Quantity", "Unit"])
-
-    try:
-        users_sheet = sh.worksheet("Users")
-    except gspread.exceptions.WorksheetNotFound:
-        users_sheet = sh.add_worksheet(title="Users", rows="100", cols="4")
-        users_sheet.append_row(["Chat_ID", "Username", "Last_Sober_Date", "Streak"])
-    logger.info("✅ Connected to Google Sheets.")
-except Exception as e:
-    logger.error(f"❌ Sheets connection error: {e}")
-
-# ========== MESSAGE POOLS ==========
-motivate_msgs = [
-    "Every alcohol-free morning builds your strength. 🌅",
-    "Your mind feels clearer each sober day. 💡",
-    "You're rewriting your story—one day at a time. 📖"
+# --- Message Pools ---
+motivation_msgs = [
+    "Stay strong today — one more alcohol-free day is a victory! 🌟",
+    "သင့်စိတ်အားကောင်းတယ်။ ဒီနေ့လည်း အရက်မသောက်ဘဲ သံသယမရှိစွမ်းဆောင်နိုင်တယ်။ 💪",
+    "Every sunrise sober is a gift to your mind and body 🌅",
+    "တစ်နေ့သောက်မသောက်သက်သာတာတစ်သက်တန်တယ်။ ✨",
 ]
 reward_msgs = [
-    "Treat yourself to something nice today. 🎁",
-    "Enjoy a peaceful cup of coffee—you earned it. ☕",
-    "Take a break and smile. 😊"
+    "Treat yourself to something nice — tea, movie, or massage 💆",
+    "တန်ဖိုးရှိတဲ့နေ့ပါ။ သက်သာဖို့ စိတ်အေးအေးနဲ့ ငါးမိနစ်လောက်အနားယူပါ။ 🍵",
+    "Small rewards grow big habits. You’re doing amazing! 🎁",
 ]
 celebration_msgs = [
-    "That’s amazing progress! Keep going strong. 🎉",
-    "Another alcohol-free day! You’re shining bright. 🌟",
-    "You’re winning your peace back. 🌿"
+    "Another alcohol-free night — your body says thank you! 🥂",
+    "အရက်မသောက်တဲ့ညလေး — သက်သာတဲ့အိပ်စက်မှုရရှိပါစေ။ 🌙",
+    "Keep it up — tomorrow, you’ll be even prouder of yourself 💫",
 ]
-nojudgement_msgs = [
-    "It’s okay. Restart with kindness to yourself. 💫",
-    "Every setback is a setup for a comeback. 🌱",
-    "No judgment, only progress. 💪"
+no_judgement_msgs = [
+    "It’s okay — one setback doesn’t erase your progress. 🌱",
+    "အရမ်းမစိုးရိမ်ပါနဲ့။ မနေ့ကတော့လွဲသွားလို့ပေမဲ့ မနက်ဖြန်ပြန်စနိုင်တယ်။ ❤️",
+    "Restart, don’t quit. You’ve come too far. 🔁",
 ]
-craving_msgs = [
-    "It's okay to crave—it will pass soon. 🌬️",
-    "You are stronger than the craving. 💪",
-    "Drink water, breathe deeply. You’ve got this. 💧"
+craving_support = [
+    "Take 3 deep breaths — craving passes faster than you think 🌬️",
+    "မသောက်ရင် အေးချမ်းမှုကိုခံစားပါ။ ညအိပ်မက်ကောင်းလာပါလိမ့်မယ်။ 🌙",
+    "Drink water, distract your mind — you are stronger than the urge 💧",
 ]
 
-# ========== HELPERS ==========
-def get_streak(chat_id):
+# --- Helper functions ---
+def get_sheet(name):
     try:
-        cell = users_sheet.find(str(chat_id))
-        if cell:
-            row = users_sheet.row_values(cell.row)
-            last_sober = datetime.strptime(row[2], "%Y-%m-%d").date()
-            today = datetime.now(pytz.timezone('Asia/Yangon')).date()
-            return (today - last_sober).days
+        return sheet.worksheet(name)
     except Exception:
-        pass
-    return 0
+        return sheet.add_worksheet(title=name, rows=1000, cols=4)
 
-def reset_streak(chat_id, username):
-    today = datetime.now(pytz.timezone('Asia/Yangon')).strftime("%Y-%m-%d")
-    try:
-        cell = users_sheet.find(str(chat_id))
-        if cell:
-            users_sheet.update_cell(cell.row, 2, today)
-            users_sheet.update_cell(cell.row, 3, 0)
-        else:
-            users_sheet.append_row([str(chat_id), username, today, 0])
-    except Exception as e:
-        logger.error(f"Streak reset error: {e}")
+def log_alcohol_entry(description):
+    ws = get_sheet("Alcohol")
+    date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    ws.append_row([date, description])
+    logger.info(f"📝 Logged alcohol entry: {description}")
 
-def log_alcohol(description):
-    now = datetime.now(pytz.timezone('Asia/Yangon')).strftime("%Y-%m-%d %H:%M")
-    try:
-        parts = description.split()
-        qty = [p for p in parts if p.endswith("x")]
-        amount = parts[-1] if len(parts) >= 2 else ""
-        alcohol_sheet.append_row([now, description, amount, "entry"])
-    except Exception as e:
-        logger.error(f"Alcohol log error: {e}")
+def reset_streak():
+    ws = get_sheet("Note")
+    ws.append_row([datetime.now().strftime("%Y-%m-%d"), "Streak reset"])
+    logger.info("⚠️ Streak reset to 0")
 
-# ========== BOT HANDLERS ==========
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    reset_streak(user.id, user.username)
+def get_random(arr):
+    return random.choice(arr)
+
+# --- Telegram Handlers ---
+async def start(update: Update, context):
     await update.message.reply_text(
-        f"👋 Hello {user.first_name}!\n\n"
-        "Welcome to Mira Alcohol-Free Helper Bot 🌿\n\n"
-        "🧘 Type *အရက်သောက်ချင်တယ်* to get calm support\n"
-        "🍺 Log drinking like: `Beer 350ml x 5`\n"
-        "🌞 Morning reminders at 8AM\n"
-        "🌙 Night encouragements at 9PM\n\n"
-        "Let's build your streak together 💪",
-        parse_mode="Markdown"
+        "👋 Welcome to Mira Alcohol-Free Helper Bot!\n"
+        "Type `/status` to see your progress.\n"
+        "Type 'အရက်သောက်ချင်တယ်' when you crave.\n"
+        "Type like `Beer 350ml x 5` to log a drink."
     )
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def status(update: Update, context):
+    ws = get_sheet("Note")
+    days = len(ws.col_values(1))
+    await update.message.reply_text(f"📅 Alcohol-free days so far: {days} days ✅")
+
+async def handle_message(update: Update, context):
     text = update.message.text.strip()
-    user = update.effective_user
-    chat_id = user.id
+    logger.info(f"💬 Received: {text}")
 
-    # craving detection
-    if "အရက်သောက်ချင်" in text:
-        await update.message.reply_text(random.choice(craving_msgs))
+    # Craving Detection
+    if "အရက်သောက်ချင်တယ်" in text:
+        msg = get_random(craving_support)
+        await update.message.reply_text(f"💬 {msg}")
         return
 
-    # alcohol log detection
-    alcohol_types = ["beer", "rum", "vodka", "whisky", "wine"]
-    if any(a.lower() in text.lower() for a in alcohol_types):
-        log_alcohol(text)
-        reset_streak(chat_id, user.username)
-        await update.message.reply_text(
-            random.choice(nojudgement_msgs) + "\n📝 Logged: " + text
-        )
+    # Alcohol Logging
+    if any(x in text.lower() for x in ["beer", "vodka", "rum", "whisky", "alcohol"]):
+        log_alcohol_entry(text)
+        reset_streak()
+        msg = get_random(no_judgement_msgs)
+        await update.message.reply_text(f"📝 Logged: {text}\n\n{msg}")
         return
 
-    # fallback
-    await update.message.reply_text("🪶 I'm here to help — try typing /start or /status.")
+    await update.message.reply_text("💡 Type `/help` for commands or record your alcohol-free progress.")
 
-async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    days = get_streak(chat_id)
-    await update.message.reply_text(f"🌿 Alcohol-Free Streak: {days} days")
-
-# ========== SCHEDULED REMINDERS ==========
-async def morning_reminder(application):
-    logger.info("⏰ Sending morning reminder...")
-    users = users_sheet.get_all_records()
-    for u in users:
-        chat_id = u["Chat_ID"]
-        days = get_streak(chat_id)
-        text = (
-            f"🌅 Good Morning!\n"
-            f"🍀 Alcohol-Free Streak: {days} days\n\n"
-            f"💬 Motivation: {random.choice(motivate_msgs)}\n"
-            f"🎁 Reward idea: {random.choice(reward_msgs)}"
-        )
-        try:
-            await application.bot.send_message(chat_id=chat_id, text=text)
-        except Exception as e:
-            logger.error(f"Morning reminder error: {e}")
-
-async def night_reminder(application):
-    logger.info("🌙 Sending night reminder...")
-    users = users_sheet.get_all_records()
-    for u in users:
-        chat_id = u["Chat_ID"]
-        days = get_streak(chat_id)
-        text = (
-            f"🌙 Good Night!\n"
-            f"🍀 Alcohol-Free Streak: {days} days\n\n"
-            f"🎉 {random.choice(celebration_msgs)}"
-        )
-        try:
-            await application.bot.send_message(chat_id=chat_id, text=text)
-        except Exception as e:
-            logger.error(f"Night reminder error: {e}")
-
-# ========== MAIN BOT ==========
+# --- Main Bot Application ---
 def main():
-    logger.info("🚀 Starting Mira Alcohol-Free Bot (v7) ...")
+    global app_instance
+    logger.info("🚀 Starting Mira Alcohol-Free Bot (v8)...")
     app_instance = Application.builder().token(TELEGRAM_TOKEN).build()
 
     app_instance.add_handler(CommandHandler("start", start))
     app_instance.add_handler(CommandHandler("status", status))
     app_instance.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    WEBHOOK_URL = "https://mira-bot-v2.onrender.com/webhook"
-
-   @app.route("/webhook", methods=["POST"])
-    def webhook():
-        try:
-            data = request.get_json()
-            if not data:
-                return "No data", 200
-
-            logger.info(f"📩 Incoming update: {data}")
-            update = Update.de_json(data, app_instance.bot)
-
-            async def process_update_async():
-                try:
-                    await app_instance.process_update(update)
-                    logger.info("✅ Telegram handler executed successfully.")
-                except Exception as e:
-                    logger.error(f"Handler execution error: {e}")
-
-            # Run without closing loop (safe persistent loop)
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.create_task(process_update_async())
-
-            # Don't close the loop — let it persist!
-            Thread(target=loop.run_forever, daemon=True).start()
-
-        except Exception as e:
-            logger.error(f"❌ Webhook error: {e}")
-        return "OK", 200
+    app_instance.bot.set_webhook(WEBHOOK_URL)
+    return app_instance
 
 
-    async def run_bot():
-        await app_instance.initialize()
-        await app_instance.start()
-        await app_instance.bot.set_webhook(url=WEBHOOK_URL)
-        logger.info(f"🤖 Bot webhook set to {WEBHOOK_URL}")
+# --- Flask Webhook Endpoint ---
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    try:
+        data = request.get_json()
+        if not data:
+            return "No data", 200
 
-        # Schedule reminders
-        while True:
-            now = datetime.now(pytz.timezone('Asia/Yangon')).strftime("%H:%M")
-            if now == "08:00":
-                await morning_reminder(app_instance)
-            elif now == "21:00":
-                await night_reminder(app_instance)
-            await asyncio.sleep(60)
+        logger.info(f"📩 Incoming update: {data}")
+        update = Update.de_json(data, app_instance.bot)
 
-    def start_bot():
+        async def process_update_async():
+            try:
+                await app_instance.process_update(update)
+                logger.info("✅ Telegram handler executed successfully.")
+            except Exception as e:
+                logger.error(f"Handler execution error: {e}")
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(run_bot())
+        loop.create_task(process_update_async())
+        Thread(target=loop.run_forever, daemon=True).start()
 
-    Thread(target=start_bot, daemon=True).start()
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    except Exception as e:
+        logger.error(f"❌ Webhook error: {e}")
+
+    return "OK", 200
+
+
+@app.route("/")
+def home():
+    return "🍃 Mira Bot is running on Render!"
+
 
 if __name__ == "__main__":
-    main()
+    app_instance = main()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
