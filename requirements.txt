@@ -1,8 +1,24 @@
-python-telegram-bot==20.7
+# === Core Telegram Bot ===
+python-telegram-bot==20.8
+
+# === Webhook & Server ===
 Flask==3.0.3
-gspread==6.1.2
-google-auth==2.34.0
-google-auth-oauthlib==1.2.0
-requests==2.32.3
+gunicorn==22.0.0        # Recommended for production (Render auto-detects)
+
+# === Google Sheets Integration ===
+gspread==6.0.2
+google-auth==2.35.0
+
+# === Timezone & Utilities ===
 pytz==2024.1
+
+# === Async HTTP (used by telegram + webhook communication) ===
+httpx==0.27.0
+
+# === Optional but recommended (for structured logging & safer JSON) ===
+orjson==3.10.7
+
+# === Render-compatible runtime utilities ===
+Werkzeug==3.0.3
+
 
