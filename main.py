@@ -15,13 +15,14 @@ from telegram.ext import (
     ConversationHandler,
     filters,
     CallbackContext,
-    CallbackQueryHandler
+    CallbackQueryHandler,
+    ContextTypes,
 )
 from flask import Flask, request
 from threading import Thread
 
 # --- Flask Web Server Setup (for Render Free Tier) ---
-app = Flask('')
+app = Flask(__name__)
 
 @app.route('/')
 def home():
