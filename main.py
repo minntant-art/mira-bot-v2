@@ -201,21 +201,28 @@ def main():
             data = request.get_json()
             if not data:
                 return "No data", 200
-            
+    
             logger.info(f"📩 Incoming update: {data}")
             update = Update.de_json(data, app_instance.bot)
-    
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
 
-            loop.create_task(app_instance.process_update(update))
-            logger.info("✅ Webhook update processed successfully.")
+            async def process_update():
+                try:
+                    await app_instance.process_update(update)
+                    logger.info("✅ Telegram handler executed successfully.")
+                except Exception as e:
+                    logger.error(f"Handler execution error: {e}")
+
+            # Run safely on new loop in a background thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.create_task(process_update())
+            loop.run_until_complete(asyncio.sleep(0))
+            loop.close()
+
         except Exception as e:
             logger.error(f"❌ Webhook error: {e}")
         return "OK", 200
+
 
     async def run_bot():
         await app_instance.initialize()
