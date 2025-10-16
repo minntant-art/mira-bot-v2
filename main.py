@@ -195,29 +195,30 @@ def main():
 
     WEBHOOK_URL = "https://mira-bot-v2.onrender.com/webhook"
 
-    @app.route("/webhook", methods=["POST"])
+   @app.route("/webhook", methods=["POST"])
     def webhook():
         try:
             data = request.get_json()
             if not data:
                 return "No data", 200
-    
+
             logger.info(f"📩 Incoming update: {data}")
             update = Update.de_json(data, app_instance.bot)
 
-            async def process_update():
+            async def process_update_async():
                 try:
                     await app_instance.process_update(update)
                     logger.info("✅ Telegram handler executed successfully.")
                 except Exception as e:
                     logger.error(f"Handler execution error: {e}")
 
-            # Run safely on new loop in a background thread
+            # Run without closing loop (safe persistent loop)
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            loop.create_task(process_update())
-            loop.run_until_complete(asyncio.sleep(0))
-            loop.close()
+            loop.create_task(process_update_async())
+
+            # Don't close the loop — let it persist!
+            Thread(target=loop.run_forever, daemon=True).start()
 
         except Exception as e:
             logger.error(f"❌ Webhook error: {e}")
