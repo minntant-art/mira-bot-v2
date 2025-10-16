@@ -450,6 +450,34 @@ def main():
 
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
+    from telegram.ext import CommandHandler, MessageHandler, filters
+
+# --- Telegram Command Handlers ---
+    async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        welcome_text = (
+            f"👋 Hello {user.first_name}!\n\n"
+            f"Welcome to *Mira Alcohol-Free Helper Bot* 🍃\n\n"
+            "🌞 Use /motivate for daily inspiration\n"
+            "🧘 Use /focus for calm & breathing\n"
+            "📊 Use /status to see your streak\n\n"
+            "Let's make today alcohol-free 💪"
+        )
+        await update.message.reply_text(welcome_text, parse_mode="Markdown")
+
+    async def motivate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        text = get_random_benefit_message()
+        await update.message.reply_text(f"🌿 {text}")
+
+    async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        days = get_alcohol_free_days()
+        await update.message.reply_text(f"🍀 You’ve been alcohol-free for *{days}* days!", parse_mode="Markdown")
+
+    # --- Attach handlers ---
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("motivate", motivate))
+    application.add_handler(CommandHandler("status", status))
+
     # Register handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("motivate", motivate))
