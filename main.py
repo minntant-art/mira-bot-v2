@@ -577,12 +577,26 @@ def webhook():
     try:
         data = request.get_json(force=True)
         if not data:
-            return "no data", 200
+            return "No data", 200
+
         update = Update.de_json(data, bot_app.bot)
-        fut = bot_loop.run_coroutine_threadsafe(bot_app.process_update(update), bot_loop)
-        fut.result(timeout=10)
+        logger.info(f"📩 Incoming update: {update.to_dict()}")
+
+        # ✅ Safe coroutine execution for Telegram updates
+        import asyncio
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            asyncio.run_coroutine_threadsafe(bot_app.process_update(update), loop)
+        else:
+            asyncio.run(bot_app.process_update(update))
+
+        logger.info("✅ Webhook update processed successfully.")
     except Exception as e:
-        logger.warning(f"Webhook error: {e}")
+        logger.error(f"Webhook error: {e}")
     return "OK", 200
 
 
@@ -605,6 +619,7 @@ def start_bot():
             await app.bot.delete_webhook()
             await app.bot.set_webhook(url=WEBHOOK_URL)
             logger.info(f"🤖 Webhook set: {WEBHOOK_URL}")
+            logger.info(f"🌍 Flask webhook endpoint active at: {WEBHOOK_URL}")
 
         bot_loop.run_until_complete(init())
         globals()["bot_app"] = app
