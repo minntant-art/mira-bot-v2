@@ -17,7 +17,7 @@ from telegram.ext import (
 import gspread
 
 # --- Configuration ---
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "8314100228:AAFw3iR_bHrjFyN2os3fjDF_-7v2Pv2tOv0")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 SPREADSHEET_ID = "1ZZLEc6OsBt89Vc3rAwqdGjRek1Ut7YFcAUeWZVVOszY"
 WEBHOOK_URL = "https://mira-bot-v2.onrender.com/webhook"
 
